@@ -13,13 +13,12 @@
  * Plugin Name:	wp-sqrl
  * Plugin URI:	
  * Description:	A WordPress plugin for GRC's SQRL authentication.
- * Version:		0.1b
+ * Version:		0.1a
  * Author:		Chad Ohman <chad@chadohman.ca>
  * Author URI:	https://chadohman.ca
- * Text Domain:	
  * License:		Apache License 2.0
  * License URI:	http://www.apache.org/licenses/
- * Domain Path:	
+ * Text Domain:	wp-sqrl
  */
 
 // Make sure we don't expose any info if called directly
@@ -37,7 +36,7 @@ register_activation_hook( __FILE__, array( 'WP_SQRL', 'plugin_activation' ) );
 
 register_deactivation_hook( __FILE__, array( 'WP_SQRL', 'plugin_deactivation' ) );
 
-// register_uninstall_hook();
+register_uninstall_hook( __FILE__, array( 'WP_SQRL', 'plugin_delete' ) );
 
 require_once( WP_SQRL_PLUGIN_DIR . 'class.wp-sqrl.php' );
 require_once( WP_SQRL_PLUGIN_DIR . 'class.wp-sqrl-admin.php' );
