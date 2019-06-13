@@ -30,7 +30,7 @@ if ( !function_exists( 'add_user' ) ) {
 define( 'WP_SQRL_VERSION', '0.1b');
 define( 'WP_SQRL_MINIMUM_WP_VERSION' , '4.0'); // revisit later
 define( 'WP_SQRL_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
-define( 'WP_SQRL_VARIABLE', 'something' );
+//define( 'WP_SQRL_VARIABLE', 'something' );
 
 register_activation_hook( __FILE__, array( 'WP_SQRL', 'plugin_activation' ) );
 
@@ -40,6 +40,7 @@ register_uninstall_hook( __FILE__, array( 'WP_SQRL', 'plugin_delete' ) );
 
 require_once( WP_SQRL_PLUGIN_DIR . 'class.wp-sqrl.php' );
 require_once( WP_SQRL_PLUGIN_DIR . 'class.wp-sqrl-admin.php' );
+require_once( WP_SQRL_PLUGIN_DIR . '/lib/phpqrcode/qrlib.php' ); // PHP QR Code
 
 add_action( 'init', array( 'WP_SQRL', 'init' ) );
 

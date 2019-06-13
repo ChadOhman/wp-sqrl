@@ -5,6 +5,7 @@
 
 class wp_SQRL {
 	private static $initiated = false;
+	protected $plugin_slug = 'wp-sqrl';
 
 	/**
 	 * Called when a new site is created in a WPMU environment.
