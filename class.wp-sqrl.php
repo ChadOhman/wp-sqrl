@@ -8,17 +8,48 @@ class wp_SQRL {
 	protected $plugin_slug = 'wp-sqrl';
 
 	/**
-	 * Called when a new site is created in a WPMU environment.
+	 * Constructor run on plugin initiation
 	 * @since 0.1a
-	 * @static
 	 */
-	public static activate_new_site( $blog_id ) {
-		if ( 1 !== did_action( 'wpmu_new_blog' ) ) {
+	public function __construct() {
+
+		if ( version_compare( PHP_VERSION, $this->php_required, '<' ) ) {
+			add_action( 'all_admin_notices', array( $this, 'admin_notice_insufficient_php' ) );
+			$abort = true;
+		}
+
+		if ( !empty( $abort ) ) {
 			return;
 		}
-		switch_to_blog( $blog_id );
-		self::activation();
-		restore_current_blog();
+
+		if ( is_admin() ) {
+			add_action( 'admin_init', array( $this, 'check_possible_reset') );
+			add_action( 'admin_menu', array( $this, 'menu_entry_for_admin') );
+
+			$plugin = plugin_basename( __FILE__ );
+			add_filter( 'plugin_action_links_' . $plugin, array( $this, 'addPluginSettingsLink' ) );
+			add_filter( 'network_admin_plugin_action_links_' . $plugin, array( $this, 'addPluginSettingsLink' ) );
+
+			add_action( 'network_admin_menu', array( $this, 'admin_menu' ) );
+			add_action( 'admin_menu', array( $this, 'admin_menu' ) );
+
+			// add SQRL column on users list.
+			add_action( 'manauge_users_columns', array( $this, 'manageUsersColumnsSQRL' ), 10 , 1 );
+			add_action( 'manage_users_custom_column', array( $this, 'manageUsersCustomColumnSQRL', 10, 3 ) );
+		} else {
+			add_action( 'init', array( $this, 'check_possible_reset' ) );
+		}
+
+		add_action( 'plugins_loaded', array( $this, 'plugins_loaded' ) );
+
+		if ( isset( $GLOBALS['pagenow'] ) && $GLOBALS['pagenow'] == 'wp_login.php' ) {
+			add_action( 'init', array( $this, 'login_enqueue_scripts' ), -999999999 );
+		} else {
+			add_action( 'login_enqueue_scripts', array( $this, 'login_enqueue_scripts' ), -999999999 );
+		}
+
+		
+
 	}
 
 	/**
@@ -32,37 +63,6 @@ class wp_SQRL {
 		add_rewrite_rule( $regex, $query, 'top' );
 	}
 
-	/**
-	 * Emergency stop button for borked plugin activations.
-	 * @since 0.1a
-	 * @static
-	 */
-	private static function cancel_activation( $message ) {
-?>
-<!doctype html>
-<html>
-<head>
-<meta charset="<?php bloginfo( 'charset' ); ?>" />
-<style>
-* {
-	text-align: center;
-	margin: 0;
-	padding: 0;
-	font-family: "Lucida Grande",Verdana,Arial,"Bitstream Vera Sans",sans-serif;
-}
-p {
-	margin-top: 15px;
-	margin-left: 15px;
-	font-size: 18px;
-}
-</style>
-</head>
-<body>
-<p><?php echo esc_html( $message ); ?></p>
-</body>
-</html>
-<?php
-	}
 
 	/**
 	 * init()
@@ -70,9 +70,7 @@ p {
 	 * @static
 	 */
 	private static function init() {
-		if ! ( self::$initiated ) {
-			self::init_hooks();
-		}
+		
 	}
 
 	/**
@@ -81,8 +79,6 @@ p {
 	 * @static
 	 */
 	private static function init_hooks() {
-		self::$initiated = true;
-
 		//add_action();
 	}
 
@@ -140,35 +136,6 @@ p {
 	 * @static
 	 */
 	public static function plugin_activation( $multisite ) {
-		if ( version_compare( $GLOBALS['wp_version'], WP_SQRL_MINIMUM_WP_VERSION, '<' ) ) {
-			load_plugin_textdomain( 'wp_SQRL' );
-
-			$message = 'Need higher version message here.';
-
-			wp_SQRL::cancel_activation( $message );
-		}
-		if ( function_exists( 'is_multisite' ) && is_multisite() ) {
-			if ( $multisite ) {
-				$blog_ids = self::get_blog_ids();
-				foreach ( $blog_ids as $blog_id ) {
-					switch_to_blog( $blog_id );
-					self::activation();
-				}
-				restore_current_blog();
-			} else {
-				self::activation();
-			}
-		} else {
-			self::activation();
-		}
-	}
-
-	/**
-	 * Called on to activate plugin on a single WP site or individual blogs within a WPMU environment.
-	 * @since 0.1a
-	 * @static
-	 */
-	private static function activation() {
 
 	}
 
@@ -179,28 +146,6 @@ p {
 	 */
 	public static function plugin_deactivation() {
 
-	}
-
-	/**
-	 * Called on to deactivate plugin on a single WP site or individual blogs within a WPMU environment.
-	 * @since 0.1a
-	 * @static
-	 */
-	private static function deactivation() {
-		if ( function_exists( 'is_multisite' ) && is_multisite() ) {
-			if ( $multisite ) {
-				$blog_ids = self::get_blog_ids();
-				foreach ( $blog_ids as $blog_id ) {
-					switch_to_blog( $blog_id );
-					self::deactivation();
-				}
-				restore_current_blog();
-			} else {
-				self::deactivation();
-			}
-		} else {
-			self::deactivation();
-		}
 	}
 
 	}

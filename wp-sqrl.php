@@ -27,10 +27,14 @@ if ( !function_exists( 'add_user' ) ) {
 	exit;
 }
 
+private $version = '0.1a';
+
+private $php_required = ''; // set this
+
 define( 'WP_SQRL_VERSION', '0.1b');
 define( 'WP_SQRL_MINIMUM_WP_VERSION' , '4.0'); // revisit later
 define( 'WP_SQRL_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
-//define( 'WP_SQRL_VARIABLE', 'something' );
+define( 'WP_SQRL_PLUGIN_URL', plugins_url( '', __FILE__ ));
 
 register_activation_hook( __FILE__, array( 'WP_SQRL', 'plugin_activation' ) );
 
