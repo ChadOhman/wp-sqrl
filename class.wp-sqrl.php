@@ -48,8 +48,117 @@ class wp_SQRL {
 			add_action( 'login_enqueue_scripts', array( $this, 'login_enqueue_scripts' ), -999999999 );
 		}
 
-		
+		if ( !defined( 'SQRL_DISABLE' ) || !SQRL_DISABLE ) {
+			add_filter( 'authenticate', array( $this, 'sqrlVerifyCodeAndUser' ), 999999999, 3 );
+		}
+	}
 
+	/**
+	 * Get the user capability needed for managing TFA users.
+	 *
+	 * @return String
+	 */
+	public function get_management_capability() {
+		return apply_filters( 'sqrl_management_capability', 'manage_options' );
+	}
+
+	/**
+	 * Get PHP errors
+	 *
+	 * @return boolean
+	 */
+	public function get_php_errors( $errno, $errstr, $errfile, $errline ) {
+		if ( 0 == error_reporting() ) {
+			return true;
+		}
+		$logfile = $this->php_error_to_logline( $errno, $errstr, $errfile, $errline );
+		$this->logged[] = $logline;
+		return true;
+	}
+
+
+	public function php_error_to_logline( $errno, $errstr, $errfile, $errline ) {
+		switch ( $errno ) {
+			case 1:
+				$e_type = 'E_ERROR';
+				break;
+			case 2:
+				$e_type = 'E_WARNING';
+				break;
+			case 4:
+				$e_type = 'E_PARSE';
+				break;
+			case 8:
+				$e_type = 'E_NOTICE';
+				break;
+			case 16:
+				$e_type = 'E_CORE_ERROR';
+				break;
+			case 32:
+				$e_type = 'E_CORE_WARNING';
+				break;
+			case 64:
+				$e_type = 'E_COMPILE_ERROR';
+				break;
+			case 128:
+				$e_type = 'E_COMPILE_WARNING';
+				break;
+			case 256:
+				$e_type = 'E_USER_ERROR';
+				break;
+			case 512:
+				$e_type = 'E_USER_WARNING';
+				break;
+			case 1024:
+				$e_type = 'E_USER_NOTICE';
+				break;
+			case 2048:
+				$e_type = 'E_STRICT';
+				break;
+			case 4096:
+				$e_type = 'E_RECOVERABLE_ERROR';
+				break;
+			case 8192:
+				$e_type = 'E_DEPRECATED';
+				break;
+			case 16384:
+				$e_type = 'E_USER_DEPRECATED';
+				break;
+			case 30719:
+				$e_type = 'E_ALL';
+				break;
+			default:
+				$e_type = "E_UNKNOWN ($errno)";
+				break;
+		}
+		if ( !is_string( $errstr ) ) {
+			$errstr = serialize( $errstr );
+		}
+		if ( 0 == strpos( $errfile, ABSPATH ) ) {
+			$errfile = substr( $errfile, strlen( ABSPATH ));
+		}
+
+		return "PHP event: code $e_type: $errstr (line $errline, $errfile)";
+	}
+
+	/**
+	 * Runs on WP init call
+	 * @since 0.1a
+	 */
+	public function init() {
+		if ( !is_admin() && is_user_logged_in() && file_exists( WP_SQRL_PLUGIN_DIR . '/inc/sqrl_frontend.php' ) ) ) ) {
+			$this->load_frontend();
+		} else {
+			add_shortcode( 'sqrl_user_settings', array( $this, 'sqrl_when_not_logged_in' ) ); 
+		}
+	}
+
+	public function admin_notice_insufficient_php() {
+		$this->show_admin_warning( sprintf( '<strong>Higher PHP version required</strong><br>The wp-sqrl plugin requires PHP version % or higher - your current version is %.', $this->php_required, PHP_VERSION ) );
+	}
+
+	public function show_admin_warning( $message, $class = "updated" ) {
+		echo '<div class="sqrlamessage ' . $class . '">' . '<p>' . $message . '</p></div>';
 	}
 
 	/**
@@ -61,25 +170,6 @@ class wp_SQRL {
 		$regex = '^sqrlauth\/+\?(.*)$';
 		$query = 'index.php?pagename=sqrlauth&$matches[1]';
 		add_rewrite_rule( $regex, $query, 'top' );
-	}
-
-
-	/**
-	 * init()
-	 * @since 0.1a
-	 * @static
-	 */
-	private static function init() {
-		
-	}
-
-	/**
-	 * Initialize WP hooks.
-	 * @since 0.1a
-	 * @static
-	 */
-	private static function init_hooks() {
-		//add_action();
 	}
 
 	/**
@@ -98,6 +188,12 @@ class wp_SQRL {
 				AND deleted = '0'";
 
 		return $wpdb->get_col( $sql );
+	}
+
+	public function getSQRL() {
+		if ( !class_exists( 'QRimage' ) ) {
+			require_once( WP_SQRL_PLUGIN_DIR . '/lib/phpqrcode/qrlib.php' ) );
+		}
 	}
 
 	/**
@@ -123,9 +219,8 @@ class wp_SQRL {
 	 * @since 0.1a
 	 * @param string $qr_string String for generating QR image
 	 * @return array
-	 * @static
 	 */
-	private static function generate_gr_code( $qr_string ) {
+	private function generate_gr_code( $qr_string ) {
 
 	}
 
